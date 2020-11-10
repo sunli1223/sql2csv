@@ -61,7 +61,7 @@ def get_cursor(connection):
         Return connection cursor
     """
 
-    return connection.cursor()
+    return connection.cursor(cursor=pymysql.cursors.SSDictCursor)
 
 
 def execute_query(cursor, query):
@@ -239,20 +239,24 @@ def query_to_csv(engine, host, user, port, password, database, query, headers=Fa
 
         # Write rows to CSV
         i = 0
-        for row in fetch_rows(cursor=cursor):
+
+        while True:
+            row = cursor.fetchone()
+            if not row:
+                break
             # Increment row counter
             i += 1
 
             if out_type == 'file' and i % print_info == 0:
                 print('  ...%s rows written' % "{:,}".format(i))
 
-            writer.writerow(row)
+            writer.writerow(row.values())
 
         if out_type == 'file':
             print('  ...done')
             print('* The result has been exported to %s.\n' %
                   (destination_file))
-
+        cursor.close
     # Print stdout
     if out_type == 'stdout':
         file_to_stdout()
